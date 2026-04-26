@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>echo.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#040408;font-family:'DM Mono',monospace;color:#fff;min-height:100vh}
+  ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
+  input,textarea{outline:none;caret-color:#fff;font-family:'DM Mono',monospace}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+  /* SCREENS */
+  .screen{display:none;min-height:100vh}
+  .screen.active{display:flex}
+
+  /* ONBOARDING */
+  #screen-onboard{align-items:center;justify-content:center;padding:20px}
+  .onboard-box{width:100%;max-width:440px;animation:fadeIn .5s ease}
+  .logo{font-family:'Syne',sans-serif;font-size:50px;font-weight:900;letter-spacing:-3px;text-align:center;margin-bottom:8px}
+  .logo-sub{color:#333;font-size:11px;letter-spacing:3px;text-align:center;margin-bottom:48px}
+  .field-label{color:#444;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;display:block;margin-bottom:7px}
+  .field-input{width:100%;background:#080810;border:1px solid #1a1a1a;border-radius:10px;padding:13px 16px;color:#fff;font-size:14px;font-family:'DM Mono',monospace;transition:border .2s}
+  .field-input:focus{border-color:#333;background:#0d0d14}
+  .field-group{margin-bottom:18px}
+  .world-chip{display:inline-flex;align-items:center;gap:6px;background:#0a1628;border:1px solid #1a3a5a;border-radius:20px;padding:3px 10px;margin-top:4px}
+  .world-chip-dot{width:5px;height:5px;border-radius:50%;background:#4a8fb5}
+  .world-chip-text{color:#4a8fb5;font-size:11px;font-weight:600}
+  .cta-btn{width:100%;padding:15px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:1px;text-transform:uppercase;transition:all .22s;margin-top:8px}
+  .cta-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,255,255,0.08)}
+  .cta-btn:disabled{background:#0d0d14;color:#222;cursor:default}
+  .cta-btn.active{background:linear-gradient(135deg,#fff,#ddd);color:#040408}
+
+  /* PICKING */
+  #screen-picking{flex-direction:column;align-items:center;padding:32px 20px}
+  .pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:560px;margin-bottom:24px}
+  .fig-card{background:#07070d;border:1px solid #111;border-radius:12px;padding:14px;cursor:pointer;transition:all .18s;position:relative;animation:fadeIn .3s ease}
+  .fig-card:hover{background:#0d0d1a}
+  .fig-card.picked{border-color:#1d9bf0;background:#0a1628}
+  .fig-check{position:absolute;top:8px;right:10px;color:#1d9bf0;font-size:16px}
+  .pick-footer{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-top:1px solid #111;width:100%;max-width:560px}
+
+  /* LOADING */
+  #screen-loading{align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .spinner{width:40px;height:40px;border:2px solid #111;border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+  .loading-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:900}
+  .loading-sub{color:#333;font-size:11px;letter-spacing:2px;animation:pulse 1.5s infinite}
+
+  /* APP */
+  #screen-app{flex-direction:row;align-items:flex-start}
+  .left-nav{width:220px;padding:24px 12px;border-right:1px solid #0f0f18;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+  .nav-logo{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:#fff;margin-bottom:28px;padding-left:14px;letter-spacing:-1px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;color:#444;font-size:14px;cursor:pointer;border-radius:10px;transition:all .15s;position:relative}
+  .nav-item:hover{background:#0d0d14}
+  .nav-item.active{color:#fff;font-weight:600}
+  .nav-icon{font-size:18px}
+  .notif-badge{position:absolute;right:12px;background:#f91880;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:800;animation:pulse 1.5s infinite}
+  .world-tag{background:#0a1628;border:1px solid #1a2a3a;border-radius:6px;padding:1px 7px;color:#4a8fb5;font-size:10px}
+  .nav-profile{margin-top:auto;padding:14px;border-top:1px solid #0f0f18;display:flex;align-items:center;gap:10px}
+  .main-feed{flex:1;max-width:600px;border-right:1px solid #0f0f18;min-height:100vh}
+  .feed-header{padding:16px 20px;border-bottom:1px solid #0f0f18;position:sticky;top:0;background:rgba(4,4,8,0.92);backdrop-filter:blur(12px);z-index:10;display:flex;align-items:center;justify-content:space-between}
+  .feed-title{color:#fff;font-family:'Syne',sans-serif;font-weight:900;font-size:18px}
+  .right-sidebar{width:260px;padding:24px 16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+  .sidebar-card{background:#07070d;border-radius:12px;padding:16px;border:1px solid #0f0f18}
+  .sidebar-label{font-size:9px;letter-spacing:2px;margin-bottom:12px}
+
+  /* COMPOSE */
+  .compose-box{padding:16px 20px;border-bottom:1px solid #0f0f18;display:flex;gap:12px}
+  .compose-textarea{width:100%;background:transparent;border:1px solid #111;border-radius:10px;padding:12px 14px;color:#ddd;font-size:15px;font-family:'DM Mono',monospace;resize:none;line-height:1.55;outline:none}
+  .compose-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .post-btn{background:#fff;color:#040408;border:none;border-radius:20px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s}
+  .post-btn:disabled{background:#0d0d14;color:#222;cursor:default}
+  .post-btn:hover:not(:disabled){opacity:.85}
+
+  /* POST CARD */
+  .post-card{padding:16px 20px;border-bottom:1px solid #0d0d14;background:#0a0a0f;cursor:pointer;animation:fadeIn .35s ease;transition:background .15s}
+  .post-card:hover{background:#07070d}
+  .post-header{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+  .post-name{color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+  .post-handle{color:#444;font-size:12px}
+  .post-time{color:#333;font-size:12px}
+  .post-content{color:#ccc;font-size:14px;line-height:1.65;margin-bottom:12px}
+  .post-actions{display:flex;gap:28px}
+  .act-btn{background:none;border:none;padding:0;font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer;color:#333;font-family:'DM Mono',monospace;transition:all .15s}
+  .act-btn:hover{transform:scale(1.1)}
+  .new-badge{background:#1d9bf020;color:#1d9bf0;font-size:9px;padding:1px 6px;border-radius:6px;font-weight:700}
+  .hater-badge{background:#ff444422;color:#ff4444;font-size:9px;padding:1px 6px;border-radius:4px;font-weight:800;letter-spacing:.5px}
+
+  /* REPLIES */
+  .replies-section{margin-top:14px;border-top:1px solid #111;padding-top:14px}
+  .reply-card{margin-bottom:14px;padding-left:10px;border-left:2px solid #1a1a1a;animation:fadeIn .3s ease}
+  .reply-composer{display:flex;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #0d0d14}
+  .reply-textarea{width:100%;background:#080810;border:1px solid #1a1a2e;border-radius:8px;padding:8px 12px;color:#ddd;font-size:13px;font-family:'DM Mono',monospace;resize:none;outline:none}
+
+  /* AVATAR */
+  .avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:'DM Mono',monospace;letter-spacing:-.5px;position:relative;flex-shrink:0}
+  .avatar-verified{position:absolute;bottom:-1px;right:-1px;background:#1d9bf0;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;border:2px solid #040408}
+
+  /* PROFILE MODAL */
+  .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding-top:48px;overflow-y:auto}
+  .modal-box{width:100%;max-width:500px;background:#0a0a0f;border-radius:16px;border:1px solid #1a1a2e;animation:fadeIn .2s ease;overflow:hidden}
+  .modal-banner{height:80px;position:relative}
+  .modal-close{position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.5);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+
+  /* EXPLORE / NOTIFS */
+  .explore-section{padding:16px 20px;border-bottom:1px solid #0f0f18}
+  .section-label{color:#333;font-size:10px;letter-spacing:2px;margin-bottom:14px}
+  .person-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #0d0d14;cursor:pointer;animation:fadeIn .3s ease}
+  .follow-btn{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:all .15s}
+  .notif-row{padding:14px 20px;border-bottom:1px solid #0d0d14;display:flex;gap:12px;cursor:pointer;animation:fadeIn .3s ease}
+
+  /* API KEY PROMPT */
+  #apikey-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px}
+  .apikey-box{background:#0a0a0f;border:1px solid #1a1a2e;border-radius:16px;padding:32px;width:100%;max-width:420px;animation:fadeIn .3s ease}
+  .mention{color:#1d9bf0;font-weight:600;cursor:pointer}
+
+  @media(max-width:900px){
+    .right-sidebar{display:none}
+    .left-nav{width:60px}
+    .nav-item span:not(.nav-icon){display:none}
+    .nav-logo{font-size:18px;padding-left:8px}
+    .nav-profile .nav-name{display:none}
+  }
+  @media(max-width:600px){
+    .left-nav{display:none}
+    #screen-app{flex-direction:column}
+    .main-feed{max-width:100%;border-right:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- API KEY OVERLAY -->
+<div id="apikey-overlay">
+  <div class="apikey-box">
+    <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:900;margin-bottom:8px">echo.</div>
+    <div style="color:#666;font-size:12px;letter-spacing:2px;margin-bottom:24px">ENTER YOUR GOOGLE GEMINI API KEY</div>
+    <p style="color:#888;font-size:13px;line-height:1.6;margin-bottom:16px">Get a key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#1d9bf0">aistudio.google.com</a> → Get API Key. Your key stays in your browser only.</p>
+    <input id="apikey-input" type="password" placeholder="AIza..." class="field-input" style="margin-bottom:12px"/>
+    <button onclick="saveApiKey()" class="cta-btn active" style="margin-top:0">Enter echo. →</button>
+    <p style="color:#333;font-size:11px;margin-top:12px;line-height:1.5">Your key is stored only in localStorage on your device. It's never sent anywhere except directly to Google.</p>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="screen-onboard" class="screen">
+  <div class="onboard-box">
+    <div class="logo">echo.</div>
+    <div class="logo-sub">AI SOCIAL SIMULATION</div>
+    <div class="field-group">
+      <label class="field-label">Display Name</label>
+      <input id="ob-name" class="field-input" placeholder="LeBron James" oninput="checkOnboard()"/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">@Handle</label>
+      <input id="ob-handle" class="field-input" placeholder="kingjames" oninput="checkOnboard()"/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Bio — AI builds your world from this</label>
+      <textarea id="ob-bio" class="field-input" rows="3" placeholder="NBA prospect. 6'7 SG. Top 5 recruit. Duke commit. Hoop dreams never die ✊" oninput="onBioChange()" style="resize:none;line-height:1.55"></textarea>
+      <div id="world-chip-wrap" style="min-height:28px;margin-top:4px"></div>
+    </div>
+    <button id="onboard-btn" class="cta-btn" disabled onclick="handleOnboard()">Enter the Echo Chamber →</button>
+  </div>
+</div>
+
+<!-- PICKING -->
+<div id="screen-picking" class="screen">
+  <div style="width:100%;max-width:560px">
+    <div style="margin-bottom:28px;animation:fadeIn .4s ease">
+      <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:900;margin-bottom:8px">Who's in your world?</div>
+      <div style="color:#444;font-size:13px;line-height:1.6">Pick real figures from <span id="pick-world-label" style="color:#4a8fb5"></span> to interact with.</div>
+    </div>
+    <div id="pick-grid" class="pick-grid"></div>
+    <div class="pick-footer">
+      <div style="color:#444;font-size:13px" id="pick-count">0 selected</div>
+      <button class="cta-btn active" style="width:auto;padding:12px 24px;border-radius:20px" onclick="handleFinishPicking()">Skip & Enter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="screen-loading" class="screen">
+  <div class="spinner"></div>
+  <div class="loading-title" id="loading-title">Building your world...</div>
+  <div class="loading-sub" id="loading-sub">GENERATING AI PERSONAS & FEED</div>
+</div>
+
+<!-- APP -->
+<div id="screen-app" class="screen">
+  <!-- LEFT NAV -->
+  <div class="left-nav">
+    <div class="nav-logo">echo.</div>
+    <div class="nav-item active" id="nav-home" onclick="switchTab('home')">
+      <span class="nav-icon">⌂</span><span>Home</span>
+    </div>
+    <div class="nav-item" id="nav-explore" onclick="switchTab('explore')">
+      <span class="nav-icon">◎</span><span>Explore</span>
+    </div>
+    <div class="nav-item" id="nav-notifications" onclick="switchTab('notifications');markNotifsRead()">
+      <span class="nav-icon">◌</span><span>Notifications</span>
+      <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="switchTab('profile')">
+      <span class="nav-icon">◈</span><span>Profile</span>
+    </div>
+    <div id="nav-world-box" style="margin:16px 14px 0;padding:10px 12px;background:#0a0a14;border-radius:8px;border:1px solid #111;display:none">
+      <div style="color:#333;font-size:9px;letter-spacing:2px;margin-bottom:5px">YOUR WORLD</div>
+      <div id="nav-world-label" style="color:#4a8fb5;font-size:11px;font-weight:600"></div>
+    </div>
+    <div class="nav-profile">
+      <div id="nav-avatar"></div>
+      <div class="nav-name">
+        <div style="color:#ddd;font-size:12px;font-weight:600" id="nav-profile-name"></div>
+        <div style="color:#333;font-size:10px" id="nav-profile-handle"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-feed">
+    <!-- HOME TAB -->
+    <div id="tab-home">
+      <div class="feed-header">
+        <div class="feed-title">Home</div>
+        <span class="world-tag" id="home-world-tag"></span>
+      </div>
+      <div class="compose-box">
+        <div id="compose-avatar"></div>
+        <div style="flex:1">
+          <textarea id="compose-text" class="compose-textarea" rows="3" placeholder="What's on your mind?" oninput="onComposeInput()"></textarea>
+          <div class="compose-footer">
+            <span id="compose-count" style="color:#333;font-size:11px">0/280</span>
+            <button id="compose-post-btn" class="post-btn" disabled onclick="handlePost()">Post</button>
+          </div>
+        </div>
+      </div>
+      <div id="feed-list"></div>
+    </div>
+
+    <!-- EXPLORE TAB -->
+    <div id="tab-explore" style="display:none">
+      <div class="feed-header"><div class="feed-title">Explore</div></div>
+      <div class="explore-section">
+        <div class="section-label">TRENDING IN YOUR WORLD</div>
+        <div id="trending-list"></div>
+      </div>
+      <div class="explore-section">
+        <div class="section-label">PEOPLE IN YOUR WORLD</div>
+        <div id="people-list"></div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div id="tab-notifications" style="display:none">
+      <div class="feed-header"><div class="feed-title">Notifications</div></div>
+      <div id="notifs-list"><div style="padding:40px;text-align:center;color:#222;font-size:13px">Post something to get reactions</div></div>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div id="tab-profile" style="display:none">
+      <div class="feed-header"><div class="feed-title">Profile</div></div>
+      <div id="profile-content"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="right-sidebar">
+    <div class="sidebar-card" id="sidebar-realworld" style="display:none">
+      <div class="sidebar-label" style="color:#f0a500">⭐ REAL WORLD</div>
+      <div id="sidebar-realworld-list"></div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-label" style="color:#444">LIVE FEED</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:7px;height:7px;border-radius:50%;background:#00ba7c;animation:pulse 2s infinite"></div>
+        <span style="color:#333;font-size:11px">Posts rolling in every ~20s</span>
+      </div>
+      <div id="sidebar-preview" style="color:#2a2a3a;font-size:10px;line-height:1.7"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div id="profile-modal" class="modal-overlay" style="display:none" onclick="closeProfileModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-banner" id="modal-banner">
+      <button class="modal-close" onclick="closeProfileModal()">✕</button>
+    </div>
+    <div style="padding:0 20px 20px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:-28px;margin-bottom:12px">
+        <div id="modal-avatar"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <button id="modal-support-btn" onclick="toggleRelationship('support')" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;border:1px solid #222;background:transparent;color:#444">🤝 Support</button>
+          <button id="modal-beef-btn" onclick="toggleRelationship('beef')" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;border:1px solid #222;background:transparent;color:#444">🔥 Beef</button>
+          <button id="modal-follow-btn" onclick="toggleFollowModal()" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;background:#fff;color:#040408;border:none">Follow</button>
+        </div>
+      </div>
+      <div id="modal-name" style="color:#fff;font-size:17px;font-weight:700"></div>
+      <div id="modal-handle" style="color:#444;font-size:13px;margin-bottom:6px"></div>
+      <div id="modal-bio" style="color:#888;font-size:13px;line-height:1.55;margin-bottom:8px"></div>
+      <div id="modal-stats" style="display:flex;gap:20px;flex-wrap:wrap"></div>
+    </div>
+    <div id="modal-posts" style="max-height:280px;overflow-y:auto;border-top:1px solid #111"></div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───
+let API_KEY = localStorage.getItem('echo_gemini_api_key') || '';
+let profile = null;
+let aiUsers = [];
+let feedPosts = [];
+let notifications = [];
+let following = new Set();
+let relationships = {};
+let autoSentiments = {};
+let worldContext = null;
+let followers = 0;
+let realWorldCandidates = [];
+let pickedFigures = new Set();
+let posting = false;
+let expandedPost = null;
+let viewingUser = null;
+let periodicTimer = null;
+let bioDetectTimer = null;
+
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const AVATAR_COLORS = ["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEAA7","#DDA0DD","#98D8C8","#F7DC6F","#BB8FCE","#85C1E9","#F0A500","#E84393","#00C2FF","#7FFF00","#FF7F50","#C39BD3","#76D7C4","#F9E79F"];
+
+// ─── UTILS ───
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function formatNum(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n)}
+function timeAgo(){return["just now","2m","5m","12m","34m","1h","2h","4h"][randInt(0,7)]}
+function avatarColor(name){return AVATAR_COLORS[Math.abs((name||'?').charCodeAt(0))%AVATAR_COLORS.length]}
+function initials(name){return(name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+
+function makeAvatar(name,size,color,verified){
+  const c=color||avatarColor(name);
+  const fs=Math.round(size*0.38);
+  let html=`<div class="avatar" style="width:${size}px;height:${size}px;background:${c};font-size:${fs}px;color:#0a0a0f">${initials(name)}`;
+  if(verified)html+=`<div class="avatar-verified" style="width:${Math.round(size*.38)}px;height:${Math.round(size*.38)}px;font-size:${Math.round(size*.22)}px">✓</div>`;
+  html+=`</div>`;
+  return html;
+}
+
+function detectSentiment(content,handle){
+  if(!content||!handle)return'neutral';
+  const l=content.toLowerCase();
+  if(!l.includes('@'+handle.toLowerCase())&&!l.includes(handle.toLowerCase()))return'neutral';
+  const hate=["trash","overrated","washed","clown","mid","flop","fraud","fake","never make it","terrible","awful","horrible","garbage","bust","embarrassing","joke","nobody","irrelevant"];
+  const supp=["goat","love","great","amazing","talented","fire","legit","real","respect","inspire","star","elite","believe","support","next level"];
+  const hs=hate.filter(w=>l.includes(w)).length;
+  const ss=supp.filter(w=>l.includes(w)).length;
+  if(hs>ss&&hs>0)return'hate';
+  if(ss>hs&&ss>0)return'support';
+  return'neutral';
+}
+
+function fixName(text,name,handle){
+  if(!text)return text;
+  let t=text;
+  if(handle)t=t.replace(new RegExp('@'+handle,'gi'),'@'+handle);
+  return t;
+}
+
+// ─── GEMINI API ───
+// Direct fetch is blocked by CORS/CSP when run from file:// or inside iframe sandboxes.
+// We try direct first, then fall back to corsproxy.io as a CORS relay.
+const GEMINI_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+async function callGemini(system, user, maxTokens=1000){
+  if(!API_KEY)return'';
+  const prompt = system ? system + '\n\n' + user : user;
+  const body = JSON.stringify({
+    contents: [{ role:'user', parts:[{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.9 },
+    safetySettings: [
+      {category:'HARM_CATEGORY_HARASSMENT',threshold:'BLOCK_NONE'},
+      {category:'HARM_CATEGORY_HATE_SPEECH',threshold:'BLOCK_NONE'},
+      {category:'HARM_CATEGORY_SEXUALLY_EXPLICIT',threshold:'BLOCK_NONE'},
+      {category:'HARM_CATEGORY_DANGEROUS_CONTENT',threshold:'BLOCK_NONE'}
+    ]
+  });
+  const direct = GEMINI_BASE + '?key=' + API_KEY;
+  const proxy  = 'https://corsproxy.io/?url=' + encodeURIComponent(direct);
+  for(const url of [direct, proxy]){
+    try{
+      const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body });
+      if(!res.ok){ console.warn('Gemini', res.status, await res.text()); continue; }
+      const data = await res.json();
+      if(data.error){ console.warn('Gemini api error:', data.error.message); continue; }
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if(text) return text;
+    }catch(e){ console.warn('Gemini endpoint failed:', e.message); }
+  }
+  return '';
+}
+
+// ─── API KEY ───
+function saveApiKey(){
+  const k=document.getElementById('apikey-input').value.trim();
+  if(!k.startsWith('AIza'))return alert('Please enter a valid Google Gemini API key (starts with AIza...)');
+  API_KEY=k;
+  localStorage.setItem('echo_gemini_api_key',k);
+  document.getElementById('apikey-overlay').style.display='none';
+  showScreen('onboard');
+  checkNetworkAccess().then(ok => { if(!ok) showNetworkWarning(); });
+}
+
+// ─── SCREENS ───
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+// ─── ONBOARDING ───
+async function onBioChange(){
+  checkOnboard();
+  const bio=document.getElementById('ob-bio').value.trim();
+  if(bioDetectTimer)clearTimeout(bioDetectTimer);
+  if(bio.length<15){document.getElementById('world-chip-wrap').innerHTML='';return;}
+  bioDetectTimer=setTimeout(async()=>{
+    document.getElementById('world-chip-wrap').innerHTML='<span style="color:#333;font-size:11px;animation:pulse 1.5s infinite">detecting world...</span>';
+    const r=await callGemini('Identify the professional world from a bio. Respond ONLY 2-4 words e.g. "NBA Basketball"','Bio: "'+bio+'"',100);
+    const w=r.trim().replace(/^["']|["']$/g,'').slice(0,30);
+    if(w)document.getElementById('world-chip-wrap').innerHTML=`<div class="world-chip"><div class="world-chip-dot"></div><span class="world-chip-text">${w}</span></div>`;
+  },800);
+}
+
+function checkOnboard(){
+  const n=document.getElementById('ob-name').value.trim();
+  const h=document.getElementById('ob-handle').value.trim();
+  const b=document.getElementById('ob-bio').value.trim();
+  const btn=document.getElementById('onboard-btn');
+  btn.disabled=!(n&&h&&b);
+  btn.className='cta-btn'+(n&&h&&b?' active':'');
+}
+
+async function handleOnboard(){
+  const name=document.getElementById('ob-name').value.trim();
+  const handle=document.getElementById('ob-handle').value.trim().replace(/^@/,'').replace(/\s/g,'');
+  const bio=document.getElementById('ob-bio').value.trim();
+  showScreen('loading');
+  document.getElementById('loading-title').textContent='Analyzing your world...';
+  document.getElementById('loading-sub').textContent='FINDING REAL-WORLD FIGURES';
+
+  const raw=await callGemini(
+    'Output ONLY raw JSON — no markdown, no backticks.',
+    `User bio: "${bio}", name: "${name}". Output this JSON:
+{"world":{"industry":"NBA Basketball","topics":["topic1","topic2","topic3","topic4","topic5"],"lingo":["word1","word2","word3","word4"]},"realWorldFigures":[{"name":"LeBron James","handle":"kingjames","bio":"4x NBA Champion","type":"legend","verified":true,"followers":52000000,"realWorldContext":"All-time scoring leader","realWorldIdentity":"LeBron James posts about his games, business, family, social activism.","theirTopics":["NBA games","business","social justice"]}]}
+Replace with 10 REAL people from the SAME world as the bio. Raw JSON only.`,3000);
+
+  let parsed=null;
+  try{
+    const c=raw.replace(/```[\w\s]*\n?/g,'').replace(/```/g,'').trim();
+    const s=c.indexOf('{'),e=c.lastIndexOf('}');
+    if(s!==-1&&e!==-1)parsed=JSON.parse(c.slice(s,e+1));
+  }catch(err){console.error('parse:',err);}
+
+  if(parsed?.realWorldFigures?.length){
+    worldContext=parsed.world;
+    realWorldCandidates=parsed.realWorldFigures.map(f=>({...f,isRealWorld:true,avatarColor:avatarColor(f.name),theirTopics:f.theirTopics||[],realWorldIdentity:f.realWorldIdentity||f.bio}));
+    document.getElementById('pick-world-label').textContent=worldContext?.industry||'your world';
+    renderPickGrid();
+    showScreen('picking');
+  }else{
+    worldContext={industry:'General',topics:[],lingo:[]};
+    await finishSetup(name,handle,bio,[]);
+  }
+}
+
+// ─── PICKING ───
+function renderPickGrid(){
+  const grid=document.getElementById('pick-grid');
+  grid.innerHTML=realWorldCandidates.map((f,i)=>`
+    <div class="fig-card${pickedFigures.has(f.handle)?' picked':''}" onclick="togglePick('${f.handle}')" style="animation-delay:${i*.04}s">
+      ${pickedFigures.has(f.handle)?'<div class="fig-check">✓</div>':''}
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        ${makeAvatar(f.name,38,f.avatarColor,true)}
+        <div style="min-width:0">
+          <div style="color:#fff;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name}</div>
+          <div style="color:#444;font-size:11px">@${f.handle}</div>
+        </div>
+      </div>
+      <div style="color:#555;font-size:11px;line-height:1.5;margin-bottom:6px">${f.realWorldContext||''}</div>
+      <span style="background:#0a1a0a;color:#4a8fb5;padding:2px 7px;border-radius:4px;font-size:10px">${f.type}</span>
+    </div>
+  `).join('');
+  updatePickCount();
+}
+
+function togglePick(handle){
+  if(pickedFigures.has(handle))pickedFigures.delete(handle);else pickedFigures.add(handle);
+  renderPickGrid();
+}
+
+function updatePickCount(){
+  const n=pickedFigures.size;
+  document.getElementById('pick-count').innerHTML=n+' selected'+(n>0?'<span style="color:#1d9bf0"> · they\'ll appear in your feed</span>':'');
+  const btn=document.querySelector('#screen-picking .cta-btn');
+  btn.textContent=n?`Add ${n} & Enter →`:'Skip & Enter →';
+}
+
+async function handleFinishPicking(){
+  const name=document.getElementById('ob-name').value.trim();
+  const handle=document.getElementById('ob-handle').value.trim().replace(/^@/,'').replace(/\s/g,'');
+  const bio=document.getElementById('ob-bio').value.trim();
+  const picked=realWorldCandidates.filter(f=>pickedFigures.has(f.handle));
+  showScreen('loading');
+  await finishSetup(name,handle,bio,picked);
+}
+
+async function finishSetup(name,handle,bio,picked){
+  document.getElementById('loading-title').textContent='Building your world...';
+  document.getElementById('loading-sub').textContent='GENERATING AI PERSONAS & FEED';
+
+  profile={name,handle,bio,avatarColor:AVATAR_COLORS[randInt(0,AVATAR_COLORS.length-1)],verified:false};
+  followers=randInt(300,3000);
+
+  // Generate AI personas
+  const aiRaw=await callGemini(
+    'Output ONLY a raw JSON array.',
+    `Generate 8 fictional social media personas in the world of "${worldContext?.industry||bio}". They are fans, critics, journalists, analysts.
+Output JSON array: [{"name":"Mike Torres","handle":"miketorres_hoops","bio":"Scout","type":"analyst","verified":false,"followers":8400},...]
+Raw JSON array only.`,1500);
+
+  let aiPersonas=[];
+  try{
+    const c=aiRaw.replace(/```[\w\s]*\n?/g,'').replace(/```/g,'').trim();
+    const s=c.indexOf('['),e=c.lastIndexOf(']');
+    if(s!==-1&&e!==-1)aiPersonas=JSON.parse(c.slice(s,e+1));
+  }catch(e){console.error('personas:',e);}
+
+  if(!aiPersonas.length)aiPersonas=[
+    {name:"Marcus Webb",handle:"marcuswebb_",bio:"Industry analyst",type:"analyst",verified:false,followers:12000},
+    {name:"Jordan Reeves",handle:"jreeves_live",bio:"Journalist",type:"journalist",verified:false,followers:8500},
+    {name:"Dana Cruz",handle:"danacruz99",bio:"Die-hard fan",type:"fan",verified:false,followers:3200},
+    {name:"Terry Mills",handle:"terrymills_real",bio:"Skeptic",type:"critic",verified:false,followers:5600},
+    {name:"Aaliyah Stone",handle:"aaliyahstone",bio:"Content creator",type:"fan",verified:false,followers:22000},
+    {name:"Chris Volta",handle:"chrisvolta",bio:"Agent and scout",type:"executive",verified:false,followers:9800},
+    {name:"Sam Park",handle:"sampark_vibes",bio:"Blogger covering the scene",type:"blogger",verified:false,followers:4100},
+    {name:"Riley Fox",handle:"rileyfox__",bio:"Up and coming in the industry",type:"fan",verified:false,followers:1800},
+  ];
+
+  aiPersonas=aiPersonas.map(a=>({...a,isRealWorld:false,avatarColor:avatarColor(a.name)}));
+  aiUsers=[...picked,...aiPersonas];
+
+  // Generate feed
+  const allDesc=aiUsers.map((u,i)=>`[${i}] ${u.name} (@${u.handle}) — ${u.isRealWorld?(u.realWorldIdentity||u.bio):u.bio}`).join('\n');
+  const feedRaw=await callGemini(
+    `Output ONLY a raw JSON array. The user's exact name is "${name}" and handle is "@${handle}" — spell both perfectly.`,
+    `Generate 12 social media posts. World: "${worldContext?.industry||bio}".
+Personas:\n${allDesc}
+Rules: Real figures post about THEIR OWN careers. AI personas occasionally mention @${handle} (name: "${name}").
+Output: [{"authorIndex":0,"content":"tweet max 220 chars","likes":45000,"retweets":3200,"time":"2h"},...]
+Raw JSON array only.`,2000);
+
+  feedPosts=[];
+  try{
+    const c=feedRaw.replace(/```[\w\s]*\n?/g,'').replace(/```/g,'').trim();
+    const s=c.indexOf('['),e=c.lastIndexOf(']');
+    if(s!==-1&&e!==-1){
+      const arr=JSON.parse(c.slice(s,e+1));
+      arr.forEach((item,i)=>{
+        const idx=Math.max(0,Math.min(item.authorIndex??i%aiUsers.length,aiUsers.length-1));
+        const author=aiUsers[idx];
+        if(!author||!item.content)return;
+        const content=fixName(item.content,name,handle);
+        feedPosts.push({id:'feed-'+i+'-'+Date.now(),author,content,likes:item.likes||randInt(5,500),retweets:item.retweets||randInt(0,50),time:item.time||timeAgo(),replies:[],likedByMe:false});
+      });
+    }
+  }catch(e){console.error('feed:',e);}
+
+  if(!feedPosts.length)aiUsers.slice(0,6).forEach((author,i)=>{
+    feedPosts.push({id:'fallback-'+i,author,content:author.isRealWorld?`Focused on the work. That's all that matters.`:`Everyone's watching what happens next in ${worldContext?.industry||'the game'}.`,likes:randInt(20,5000),retweets:randInt(0,100),time:timeAgo(),replies:[],likedByMe:false});
+  });
+
+  feedPosts=feedPosts.sort(()=>Math.random()-.5);
+  feedPosts.forEach(fp=>{
+    const sent=detectSentiment(fp.content,handle);
+    if(sent==='hate')autoSentiments[fp.author.handle]='hate';
+  });
+
+  renderApp();
+  showScreen('app');
+  schedulePeriodicPost();
+
+  // Seed replies
+  feedPosts.slice(0,4).forEach((fp,i)=>{
+    setTimeout(async()=>{
+      const pool=aiUsers.filter(a=>a.handle!==fp.author?.handle);
+      if(!pool.length)return;
+      const replier=pool[randInt(0,pool.length-1)];
+      const rText=await callGemini(
+        `You are ${replier.name}. Bio: "${replier.bio}". Reply only with text, no quotes.`,
+        `Reply to: "${fp.content}" — short reaction max 160 chars.`);
+      if(!rText.trim())return;
+      const reply={id:'sr-'+Date.now()+i,author:replier,content:rText.trim().replace(/^["']|["']$/g,''),likes:randInt(1,30),time:timeAgo(),replies:[]};
+      const post=feedPosts.find(p=>p.id===fp.id);
+      if(post){post.replies.push(reply);if(expandedPost===fp.id)renderFeed();}
+    },(i+1)*5000+randInt(1000,4000));
+  });
+}
+
+// ─── RENDER APP ───
+function renderApp(){
+  document.getElementById('nav-profile-name').textContent=profile.name;
+  document.getElementById('nav-profile-handle').textContent='@'+profile.handle;
+  document.getElementById('nav-avatar').innerHTML=makeAvatar(profile.name,34,profile.avatarColor);
+  document.getElementById('compose-avatar').innerHTML=makeAvatar(profile.name,44,profile.avatarColor);
+  if(worldContext?.industry){
+    document.getElementById('nav-world-box').style.display='block';
+    document.getElementById('nav-world-label').textContent=worldContext.industry;
+    document.getElementById('home-world-tag').textContent=worldContext.industry;
+  }
+  renderExplore();
+  renderSidebar();
+  renderFeed();
+  renderProfileTab();
+}
+
+function renderFeed(){
+  const list=document.getElementById('feed-list');
+  list.innerHTML=feedPosts.map(p=>renderPostCard(p)).join('');
+  updateSidebarPreview();
+}
+
+function renderPostCard(post){
+  const isUser=!!post.isUserPost;
+  const author=isUser?profile:post.author;
+  const rel=relationships[author?.handle];
+  const autoSent=autoSentiments[author?.handle];
+  const nameColor=rel==='support'?'#00ba7c':rel==='beef'?'#f91880':autoSent==='hate'?'#ff4444':'#fff';
+
+  let repliesHtml='';
+  if(expandedPost===post.id){
+    repliesHtml=`<div class="replies-section">`;
+    if(post.loadingReplies)repliesHtml+=`<div style="color:#333;font-size:12px;animation:pulse 1.5s infinite">generating replies...</div>`;
+    else if(post.replies?.length){
+      post.replies.forEach(r=>{
+        const rAutoSent=autoSentiments[r.author?.handle];
+        repliesHtml+=`<div class="reply-card">
+          <div style="display:flex;gap:10px">
+            <div onclick="openProfile('${r.author?.handle}');event.stopPropagation()" style="cursor:pointer">${makeAvatar(r.author?.name,32,r.author?.avatarColor,r.author?.verified)}</div>
+            <div style="flex:1">
+              <div style="display:flex;gap:5px;align-items:center;margin-bottom:3px;flex-wrap:wrap">
+                <span style="color:#bbb;font-size:13px;font-weight:700;cursor:pointer" onclick="openProfile('${r.author?.handle}');event.stopPropagation()">${r.author?.name}</span>
+                ${rAutoSent==='hate'?'<span class="hater-badge">HATER</span>':''}
+                <span style="color:#333;font-size:11px">@${r.author?.handle}</span>
+                <span style="color:#222;font-size:11px">· ${r.time}</span>
+              </div>
+              <div style="color:#888;font-size:13px;line-height:1.55;margin-bottom:6px">${renderMentions(r.content)}</div>
+              <div style="display:flex;gap:16px;align-items:center">
+                <span style="color:#333;font-size:11px">♡ ${formatNum(r.likes)}</span>
+                <button onclick="toggleReplyCompose('reply-compose-${r.id}');event.stopPropagation()" style="background:none;border:none;color:#333;font-size:11px;cursor:pointer;font-family:inherit;padding:0">💬 Reply</button>
+              </div>
+              ${(r.replies||[]).map(sr=>`
+                <div style="display:flex;gap:8px;margin-top:8px;padding-left:8px;border-left:2px solid #111">
+                  ${makeAvatar(sr.author?.name,24,sr.author?.handle===profile?.handle?profile?.avatarColor:sr.author?.avatarColor)}
+                  <div style="flex:1">
+                    <div style="display:flex;gap:5px;align-items:center;margin-bottom:2px;flex-wrap:wrap">
+                      <span style="color:#aaa;font-size:12px;font-weight:700">${sr.author?.name}</span>
+                      <span style="color:#333;font-size:10px">@${sr.author?.handle}</span>
+                    </div>
+                    <div style="color:#666;font-size:12px;line-height:1.5">${renderMentions(sr.content)}</div>
+                  </div>
+                </div>`).join('')}
+              <div id="reply-compose-${r.id}" style="display:none">
+                <div class="reply-composer" onclick="event.stopPropagation()">
+                  ${makeAvatar(profile?.name,24,profile?.avatarColor)}
+                  <div style="flex:1">
+                    <textarea class="reply-textarea" rows="2" placeholder="Reply to @${r.author?.handle}..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')submitReplyToReply('${post.id}','${r.id}',this)"></textarea>
+                    <div style="display:flex;justify-content:flex-end;margin-top:4px">
+                      <button onclick="submitReplyToReply('${post.id}','${r.id}',this.previousElementSibling.previousElementSibling);event.stopPropagation()" style="background:#1d9bf0;color:#fff;border:none;border-radius:16px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif">Reply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      });
+    }else{
+      repliesHtml+=`<div style="color:#333;font-size:12px">No replies yet.</div>`;
+    }
+    repliesHtml+=`
+      <div class="reply-composer" onclick="event.stopPropagation()" style="margin-top:10px">
+        ${makeAvatar(profile?.name,28,profile?.avatarColor)}
+        <div style="flex:1">
+          <textarea class="reply-textarea" rows="2" placeholder="Reply to @${author?.handle}..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')submitReply('${post.id}',this)"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:4px">
+            <button onclick="submitReply('${post.id}',this.previousElementSibling.previousElementSibling);event.stopPropagation()" style="background:#1d9bf0;color:#fff;border:none;border-radius:16px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif">Reply</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="post-card" id="post-${post.id}" onclick="toggleExpand('${post.id}')">
+    <div style="display:flex;gap:12px">
+      <div onclick="${!isUser?`openProfile('${author?.handle}');`:''}event.stopPropagation()" style="cursor:${!isUser?'pointer':'default'}">
+        ${makeAvatar(author?.name,44,isUser?profile?.avatarColor:author?.avatarColor,author?.verified)}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="post-header">
+          <span class="post-name" style="color:${nameColor}" onclick="${!isUser?`openProfile('${author?.handle}');`:''}event.stopPropagation()">${author?.name}</span>
+          ${author?.isRealWorld?'<span style="color:#f0a500;font-size:10px">⭐</span>':''}
+          ${autoSent==='hate'&&!isUser?'<span class="hater-badge">HATER</span>':''}
+          <span class="post-handle">@${author?.handle}</span>
+          <span style="color:#222;font-size:12px">·</span>
+          <span class="post-time">${post.time}</span>
+          ${post.isNew?'<span class="new-badge">NEW</span>':''}
+        </div>
+        <div class="post-content">${renderMentions(post.content)}</div>
+        <div class="post-actions" onclick="event.stopPropagation()">
+          <button class="act-btn" style="color:${(post.replies?.length)?'#555':'#333'}" onclick="toggleExpand('${post.id}')">💬 <span>${post.replies?.length||0}</span></button>
+          <button class="act-btn" style="color:#333">↺ <span>${formatNum(post.retweets||0)}</span></button>
+          <button class="act-btn" style="color:${post.likedByMe?'#f91880':'#333'}" onclick="toggleLike('${post.id}')">
+            ${post.likedByMe?'♥':'♡'} <span>${formatNum(post.likes||0)}</span>
+          </button>
+        </div>
+        ${repliesHtml}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMentions(text){
+  if(!text)return'';
+  return text.replace(/@(\w+)/g,(match,handle)=>{
+    const user=aiUsers.find(u=>u.handle?.toLowerCase()===handle.toLowerCase());
+    return `<span class="mention"${user?` onclick="openProfile('${user.handle}');event.stopPropagation()"`:''}>@${handle}</span>`;
+  });
+}
+
+// ─── INTERACTIONS ───
+function toggleExpand(id){
+  expandedPost=expandedPost===id?null:id;
+  renderFeed();
+}
+
+function toggleLike(id){
+  const post=feedPosts.find(p=>p.id===id);
+  if(!post)return;
+  post.likedByMe=!post.likedByMe;
+  post.likes+=post.likedByMe?1:-1;
+  renderFeed();
+}
+
+function onComposeInput(){
+  const text=document.getElementById('compose-text').value.slice(0,280);
+  document.getElementById('compose-text').value=text;
+  document.getElementById('compose-count').textContent=text.length+'/280';
+  document.getElementById('compose-count').style.color=text.length>260?'#f91880':'#333';
+  const btn=document.getElementById('compose-post-btn');
+  btn.disabled=!text.trim()||posting;
+}
+
+async function handlePost(){
+  const textarea=document.getElementById('compose-text');
+  const content=textarea.value.trim();
+  if(!content||posting)return;
+  posting=true;
+  textarea.value='';
+  onComposeInput();
+
+  const myLikes=randInt(1,Math.max(3,Math.floor(followers*.015)));
+  const newPost={id:'user-'+Date.now(),author:profile,content,likes:myLikes,retweets:randInt(0,Math.floor(myLikes/3)),time:'just now',replies:[],likedByMe:false,isUserPost:true,loadingReplies:true};
+  feedPosts.unshift(newPost);
+  renderFeed();
+  followers+=randInt(1,Math.max(2,Math.floor(followers/40)));
+  posting=false;
+
+  const taggedHandles=(content.match(/@(\w+)/g)||[]).map(m=>m.slice(1).toLowerCase());
+  const taggedUsers=aiUsers.filter(u=>taggedHandles.includes(u.handle?.toLowerCase()));
+  const randomOthers=[...aiUsers].filter(u=>!taggedHandles.includes(u.handle?.toLowerCase())).sort(()=>Math.random()-.5).slice(0,Math.max(0,3-taggedUsers.length));
+  const repliers=[...taggedUsers,...randomOthers];
+  const replies=[];
+
+  for(const persona of repliers){
+    const isTagged=taggedHandles.includes(persona.handle?.toLowerCase());
+    const text=await callGemini(
+      `You are ${persona.name} (@${persona.handle}), ${persona.type}. Bio: "${persona.bio}". Reply only with text.`,
+      `Post from @${profile.handle} ("${profile.name}"): "${content}". ${isTagged?'You were tagged.':''} Short reply max 200 chars. Just text.`);
+    if(!text.trim())continue;
+    replies.push({id:'reply-'+Date.now()+Math.random(),author:persona,content:fixName(text.trim().replace(/^["']|["']$/g,''),profile.name,profile.handle),likes:randInt(0,Math.floor(myLikes*.7)),time:timeAgo(),replies:[]});
+  }
+
+  const post=feedPosts.find(p=>p.id===newPost.id);
+  if(post){post.replies=replies;post.loadingReplies=false;}
+  replies.forEach(r=>{
+    notifications.unshift({id:r.id,from:r.author,preview:r.content,time:'just now',read:false,type:'reply'});
+  });
+  updateNotifBadge();
+  renderFeed();
+  renderNotifsTab();
+}
+
+// ─── REPLIES ───
+async function submitReply(postId,textarea){
+  const text=textarea.value.trim();
+  if(!text)return;
+  textarea.value='';
+  const userReply={id:'ur-'+Date.now(),author:profile,content:text,likes:0,time:'just now',replies:[]};
+  const post=feedPosts.find(p=>p.id===postId);
+  if(!post)return;
+  post.replies.push(userReply);
+  renderFeed();
+
+  if(!post.author||post.author.handle===profile.handle)return;
+  const aiText=await callGemini(
+    `You are ${post.author.name}. Bio: "${post.author.bio||''}". Reply only with text.`,
+    `@${profile.handle} replied to your post: "${text}". Your post was: "${post.content}". Short reply back max 200 chars.`);
+  if(!aiText.trim())return;
+  const aiReply={id:'air-'+Date.now(),author:post.author,content:fixName(aiText.trim().replace(/^["']|["']$/g,''),profile.name,profile.handle),likes:randInt(1,50),time:'just now',replies:[]};
+  post.replies.push(aiReply);
+  notifications.unshift({id:aiReply.id,from:post.author,preview:aiReply.content,time:'just now',read:false,type:'reply'});
+  updateNotifBadge();
+  renderFeed();
+  renderNotifsTab();
+}
+
+async function submitReplyToReply(postId,replyId,textarea){
+  const text=textarea.value.trim();
+  if(!text)return;
+  textarea.value='';
+  const post=feedPosts.find(p=>p.id===postId);
+  const reply=post?.replies?.find(r=>r.id===replyId);
+  if(!post||!reply)return;
+  if(!reply.replies)reply.replies=[];
+  reply.replies.push({id:'usr-'+Date.now(),author:profile,content:text,likes:0,time:'just now'});
+  renderFeed();
+
+  if(!reply.author||reply.author.handle===profile.handle)return;
+  const aiText=await callGemini(
+    `You are ${reply.author.name}. Bio: "${reply.author.bio||''}". Reply only with text.`,
+    `@${profile.handle} replied to you: "${text}". Your reply was: "${reply.content}". Short response max 180 chars.`);
+  if(!aiText.trim())return;
+  if(!reply.replies)reply.replies=[];
+  reply.replies.push({id:'ais-'+Date.now(),author:reply.author,content:fixName(aiText.trim().replace(/^["']|["']$/g,''),profile.name,profile.handle),likes:randInt(1,30),time:'just now'});
+  renderFeed();
+}
+
+function toggleReplyCompose(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
+// ─── PERIODIC POSTS ───
+function schedulePeriodicPost(){
+  if(periodicTimer)clearTimeout(periodicTimer);
+  const delay=randInt(12000,25000);
+  periodicTimer=setTimeout(async()=>{
+    if(!aiUsers.length||!profile){schedulePeriodicPost();return;}
+    const persona=aiUsers[randInt(0,aiUsers.length-1)];
+    const dice=Math.random();
+    let userPrompt;
+    if(persona.isRealWorld){
+      userPrompt=`Write ONE tweet (max 200 chars) about something YOU (${persona.name}) would post about. Topics: ${(persona.theirTopics||[]).join(', ')||'your career'}. Do NOT mention @${profile.handle}. Just the tweet.`;
+    }else if(dice<.55){
+      userPrompt=`Write ONE tweet (max 200 chars) about ${worldContext?.industry||'the industry'}. Do NOT mention @${profile.handle}. Just the tweet.`;
+    }else if(dice<.80){
+      userPrompt=`Write ONE tweet (max 200 chars) casually mentioning @${profile.handle} ("${profile.name}") in passing. Use EXACT handle. Just tweet.`;
+    }else{
+      userPrompt=`Write ONE tweet (max 200 chars) with your opinion on @${profile.handle} ("${profile.name}", bio: "${profile.bio}"). Use EXACT handle. Just tweet.`;
+    }
+    const text=await callGemini(
+      `You are ${persona.name} (@${persona.handle}). Bio: "${persona.bio}". Reply only with tweet text.`,
+      userPrompt);
+    if(!text.trim()){schedulePeriodicPost();return;}
+    const postId='periodic-'+Date.now();
+    const newPost={id:postId,author:persona,content:fixName(text.trim().replace(/^["']|["']$/g,''),profile.name,profile.handle),likes:randInt(persona.isRealWorld?500:2,persona.isRealWorld?50000:500),retweets:randInt(0,50),time:'just now',replies:[],likedByMe:false,isNew:true};
+    feedPosts.unshift(newPost);
+    const sent=detectSentiment(newPost.content,profile.handle);
+    if(sent==='hate')autoSentiments[persona.handle]='hate';
+    if(newPost.content.toLowerCase().includes('@'+profile.handle.toLowerCase())){
+      notifications.unshift({id:postId,from:persona,preview:newPost.content,time:'just now',read:false,type:'mention'});
+      updateNotifBadge();
+    }
+    renderFeed();
+    renderNotifsTab();
+    setTimeout(()=>{
+      const p=feedPosts.find(p=>p.id===postId);
+      if(p)p.isNew=false;
+      renderFeed();
+    },8000);
+    setTimeout(async()=>{
+      const pool=aiUsers.filter(a=>a.handle!==persona.handle);
+      if(!pool.length)return;
+      const replier=pool[randInt(0,pool.length-1)];
+      const rText=await callGemini(
+        `You are ${replier.name}. Bio: "${replier.bio}". Reply only with text.`,
+        `Reply to: "${newPost.content}" — short genuine reaction max 180 chars.`);
+      if(!rText.trim())return;
+      const p=feedPosts.find(p=>p.id===postId);
+      if(p){
+        p.replies.push({id:'ar-'+Date.now(),author:replier,content:fixName(rText.trim().replace(/^["']|["']$/g,''),profile.name,profile.handle),likes:randInt(1,40),time:'just now',replies:[]});
+        if(expandedPost===postId)renderFeed();
+      }
+    },randInt(8000,20000));
+    schedulePeriodicPost();
+  },delay);
+}
+
+// ─── TABS ───
+function switchTab(tab){
+  ['home','explore','notifications','profile'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('nav-'+t).classList.toggle('active',t===tab);
+  });
+  if(tab==='profile')renderProfileTab();
+  if(tab==='notifications')renderNotifsTab();
+}
+
+// ─── EXPLORE ───
+function renderExplore(){
+  const trending=document.getElementById('trending-list');
+  trending.innerHTML=(worldContext?.topics||[]).map(topic=>`
+    <div style="padding:12px 0;border-bottom:1px solid #0d0d14">
+      <div style="color:#fff;font-size:13px;font-weight:600">#${topic.replace(/\s+/g,'')}</div>
+      <div style="color:#333;font-size:11px;margin-top:3px">${randInt(5,200)}K posts</div>
+    </div>`).join('');
+
+  const people=document.getElementById('people-list');
+  people.innerHTML=aiUsers.map((u,i)=>`
+    <div class="person-row" style="animation-delay:${i*.04}s" onclick="openProfile('${u.handle}')">
+      ${makeAvatar(u.name,40,u.avatarColor,u.verified)}
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:#fff;font-size:13px;font-weight:600">${u.name}</span>
+          ${u.isRealWorld?'<span style="color:#f0a500;font-size:10px">⭐</span>':''}
+        </div>
+        <div style="color:#444;font-size:11px">@${u.handle} · ${u.type}</div>
+        <div style="color:#333;font-size:11px;margin-top:2px">${u.bio}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div style="color:#333;font-size:10px">${formatNum(u.followers||0)}</div>
+        <button class="follow-btn" onclick="toggleFollow('${u.handle}');event.stopPropagation()" style="background:${following.has(u.handle)?'transparent':'#fff'};color:${following.has(u.handle)?'#666':'#040408'};border:${following.has(u.handle)?'1px solid #333':'none'}">${following.has(u.handle)?'Following':'Follow'}</button>
+      </div>
+    </div>`).join('');
+}
+
+// ─── NOTIFICATIONS ───
+function updateNotifBadge(){
+  const unread=notifications.filter(n=>!n.read).length;
+  const badge=document.getElementById('notif-badge');
+  badge.style.display=unread>0?'block':'none';
+  badge.textContent=unread;
+}
+
+function markNotifsRead(){
+  notifications.forEach(n=>n.read=true);
+  updateNotifBadge();
+  renderNotifsTab();
+}
+
+function renderNotifsTab(){
+  const list=document.getElementById('notifs-list');
+  if(!notifications.length){list.innerHTML='<div style="padding:40px;text-align:center;color:#222;font-size:13px">Post something to get reactions</div>';return;}
+  list.innerHTML=notifications.map((n,i)=>`
+    <div class="notif-row" style="animation-delay:${i*.04}s;background:${n.read?'transparent':'#07070f'}" onclick="openProfile('${n.from?.handle}')">
+      ${makeAvatar(n.from?.name,36,undefined,n.from?.verified)}
+      <div style="flex:1">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+          <span style="color:#ddd;font-size:13px;font-weight:600">${n.from?.name}</span>
+          <span style="color:#333;font-size:11px">@${n.from?.handle}</span>
+          <span style="color:${n.type==='mention'?'#1d9bf0':'#888'};font-size:10px">${n.type==='mention'?'mentioned you':'replied'}</span>
+        </div>
+        <div style="color:#555;font-size:13px;line-height:1.5">${n.preview?.slice(0,120)}</div>
+      </div>
+      ${!n.read?'<div style="width:6px;height:6px;border-radius:50%;background:#f91880;flex-shrink:0;margin-top:6px"></div>':''}
+    </div>`).join('');
+}
+
+// ─── PROFILE TAB ───
+function renderProfileTab(){
+  const userPosts=feedPosts.filter(p=>p.isUserPost);
+  const content=document.getElementById('profile-content');
+  content.innerHTML=`
+    <div style="height:80px;background:linear-gradient(135deg,${profile?.avatarColor||'#1a1a2e'}33,#040408)"></div>
+    <div style="padding:0 20px 20px;border-bottom:1px solid #111">
+      <div style="margin-top:-28px;margin-bottom:14px">${makeAvatar(profile?.name,68,profile?.avatarColor)}</div>
+      <div style="color:#fff;font-size:18px;font-weight:700">${profile?.name}</div>
+      <div style="color:#444;font-size:13px;margin-bottom:8px">@${profile?.handle}</div>
+      <div style="color:#888;font-size:13px;line-height:1.55;margin-bottom:12px">${profile?.bio}</div>
+      ${worldContext?.industry?`<span class="world-tag">${worldContext.industry}</span>`:''}
+      <div style="display:flex;gap:24px;margin-top:14px">
+        <div><b style="color:#fff;font-size:14px">${formatNum(following.size+randInt(80,300))}</b><span style="color:#444;font-size:12px"> following</span></div>
+        <div><b style="color:#fff;font-size:14px">${formatNum(followers)}</b><span style="color:#444;font-size:12px"> followers</span></div>
+        <div><b style="color:#fff;font-size:14px">${userPosts.length}</b><span style="color:#444;font-size:12px"> posts</span></div>
+      </div>
+    </div>
+    ${userPosts.length?`
+      <div style="padding:12px 20px;border-bottom:1px solid #0f0f18"><div style="color:#333;font-size:10px;letter-spacing:2px">YOUR POSTS</div></div>
+      ${userPosts.map(post=>renderPostCard(post)).join('')}
+    `:'<div style="padding:40px;text-align:center;color:#222;font-size:13px">No posts yet</div>'}
+  `;
+}
+
+// ─── SIDEBAR ───
+function renderSidebar(){
+  const realPeople=aiUsers.filter(u=>u.isRealWorld);
+  const sideCard=document.getElementById('sidebar-realworld');
+  if(realPeople.length){
+    sideCard.style.display='block';
+    document.getElementById('sidebar-realworld-list').innerHTML=realPeople.slice(0,5).map(u=>`
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:11px;cursor:pointer" onclick="openProfile('${u.handle}')">
+        ${makeAvatar(u.name,32,u.avatarColor,true)}
+        <div style="flex:1;min-width:0">
+          <div style="color:#bbb;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}</div>
+          <div style="color:${relationships[u.handle]==='support'?'#00ba7c':relationships[u.handle]==='beef'?'#f91880':'#333'};font-size:10px">
+            ${relationships[u.handle]==='support'?'✊ supporting':relationships[u.handle]==='beef'?'🔥 beefing':'@'+u.handle}
+          </div>
+        </div>
+        <button onclick="toggleFollow('${u.handle}');event.stopPropagation()" style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;background:${following.has(u.handle)?'transparent':'#ffffff18'};color:${following.has(u.handle)?'#555':'#aaa'};border:${following.has(u.handle)?'1px solid #222':'1px solid #333'}">
+          ${following.has(u.handle)?'✓':'+'}
+        </button>
+      </div>`).join('');
+  }
+  updateSidebarPreview();
+}
+
+function updateSidebarPreview(){
+  document.getElementById('sidebar-preview').innerHTML=feedPosts.slice(0,3).map(p=>`
+    <div style="margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${p.author?.handle}: ${p.content?.slice(0,40)}...</div>`).join('');
+}
+
+// ─── FOLLOW / RELATIONSHIPS ───
+function toggleFollow(handle){
+  if(following.has(handle))following.delete(handle);else following.add(handle);
+  renderExplore();
+  renderSidebar();
+}
+
+function toggleRelationship(rel){
+  if(!viewingUser)return;
+  const cur=relationships[viewingUser.handle];
+  relationships[viewingUser.handle]=cur===rel?'neutral':rel;
+  updateModalRelButtons();
+  renderSidebar();
+  renderFeed();
+}
+
+// ─── PROFILE MODAL ───
+function openProfile(handle){
+  const user=aiUsers.find(u=>u.handle===handle);
+  if(!user)return;
+  viewingUser=user;
+  document.getElementById('modal-banner').style.background=`linear-gradient(135deg,${user.avatarColor||'#1a1a2e'}33,#0d0d1a)`;
+  document.getElementById('modal-avatar').innerHTML=makeAvatar(user.name,60,user.avatarColor,user.verified);
+  document.getElementById('modal-name').textContent=user.name;
+  document.getElementById('modal-handle').textContent='@'+user.handle;
+  document.getElementById('modal-bio').textContent=user.bio||'';
+  document.getElementById('modal-stats').innerHTML=`
+    <span style="color:#888;font-size:12px"><b style="color:#fff">${formatNum(user.followers||0)}</b> followers</span>
+    <span style="color:#888;font-size:12px"><b style="color:#fff">${user.type||'user'}</b></span>
+    ${user.isRealWorld?'<span style="color:#f0a500;font-size:11px">⭐ Real world figure</span>':''}`;
+  const userPosts=feedPosts.filter(p=>p.author?.handle===user.handle);
+  document.getElementById('modal-posts').innerHTML=userPosts.slice(0,8).map(p=>`
+    <div style="padding:12px 20px;border-bottom:1px solid #0d0d14">
+      <div style="color:#888;font-size:13px;line-height:1.55">${p.content}</div>
+      <div style="color:#333;font-size:11px;margin-top:5px">♡ ${formatNum(p.likes||0)} · ${p.time}</div>
+    </div>`).join('')||'<div style="padding:28px;text-align:center;color:#333;font-size:13px">No posts yet</div>';
+  updateModalRelButtons();
+  document.getElementById('profile-modal').style.display='flex';
+}
+
+function updateModalRelButtons(){
+  if(!viewingUser)return;
+  const rel=relationships[viewingUser.handle];
+  const isFollowing=following.has(viewingUser.handle);
+  const sBtn=document.getElementById('modal-support-btn');
+  const bBtn=document.getElementById('modal-beef-btn');
+  const fBtn=document.getElementById('modal-follow-btn');
+  sBtn.style.borderColor=rel==='support'?'#00ba7c':'#222';
+  sBtn.style.background=rel==='support'?'#00ba7c22':'transparent';
+  sBtn.style.color=rel==='support'?'#00ba7c':'#444';
+  bBtn.style.borderColor=rel==='beef'?'#f91880':'#222';
+  bBtn.style.background=rel==='beef'?'#f9188022':'transparent';
+  bBtn.style.color=rel==='beef'?'#f91880':'#444';
+  fBtn.style.background=isFollowing?'transparent':'#fff';
+  fBtn.style.color=isFollowing?'#aaa':'#040408';
+  fBtn.style.border=isFollowing?'1px solid #333':'none';
+  fBtn.textContent=isFollowing?'Following':'Follow';
+}
+
+function toggleFollowModal(){
+  if(!viewingUser)return;
+  toggleFollow(viewingUser.handle);
+  updateModalRelButtons();
+}
+
+function closeProfileModal(){
+  document.getElementById('profile-modal').style.display='none';
+  viewingUser=null;
+}
+
+// ─── INIT ───
+// Detect hostile iframe/file:// context by doing a quick test fetch
+async function checkNetworkAccess(){
+  try{
+    const test = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {method:'GET', signal: AbortSignal.timeout(4000)});
+    // Any response (even 401) means fetch works
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function showNetworkWarning(){
+  const warn = document.createElement('div');
+  warn.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a0a00;border-top:1px solid #f0a500;padding:14px 20px;display:flex;align-items:center;gap:14px;font-family:DM Mono,monospace';
+  warn.innerHTML = `
+    <span style="font-size:18px">⚠️</span>
+    <div style="flex:1">
+      <div style="color:#f0a500;font-size:12px;font-weight:700;margin-bottom:3px">NETWORK BLOCKED — API CALLS WON'T WORK HERE</div>
+      <div style="color:#888;font-size:11px;line-height:1.5">
+        This viewer blocks external API calls. <b style="color:#ccc">Download this file</b>, then run:
+        <code style="background:#111;padding:2px 7px;border-radius:4px;color:#4a8fb5;margin:0 4px">python3 -m http.server 8080</code>
+        and open <code style="background:#111;padding:2px 7px;border-radius:4px;color:#4a8fb5">http://localhost:8080/echo-gemini.html</code>
+      </div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#444;cursor:pointer;font-size:18px;padding:4px">✕</button>
+  `;
+  document.body.appendChild(warn);
+}
+
+if(API_KEY){
+  document.getElementById('apikey-overlay').style.display='none';
+  showScreen('onboard');
+  checkNetworkAccess().then(ok => { if(!ok) showNetworkWarning(); });
+}
+
+document.getElementById('apikey-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter')saveApiKey();
+});
+</script>
+</body>
+</html>
